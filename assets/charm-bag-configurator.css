@@ -1,0 +1,166 @@
+.charm-bag-configurator {
+  padding: 2rem 0;
+}
+
+.charm-bag-configurator__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.charm-bag-configurator__viewer {
+  position: relative;
+  background: #f7f7f7;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 420px;
+}
+
+.charm-bag-configurator__canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  position: relative;
+}
+
+.charm-bag-configurator__canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.charm-bag-configurator__loading,
+.charm-bag-configurator__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 2;
+}
+
+.charm-bag-configurator__fallback img {
+  max-width: 70%;
+  height: auto;
+  border-radius: 12px;
+  margin-top: 1rem;
+}
+
+.charm-bag-configurator__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.charm-bag-configurator__panel {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.charm-bag-configurator__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.charm-bag-configurator__option {
+  border: 1px solid #d5d5d5;
+  border-radius: 10px;
+  padding: 0.5rem;
+  background: #fafafa;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.charm-bag-configurator__option.is-active {
+  border-color: #000;
+  background: #fff;
+}
+
+.charm-bag-configurator__option img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.charm-bag-configurator__slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.charm-bag-configurator__slot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #d5d5d5;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.charm-bag-configurator__selected {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.charm-bag-configurator__selected-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.charm-bag-configurator__selected-item select {
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+.charm-bag-configurator__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.charm-bag-configurator__button {
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+}
+
+.charm-bag-configurator__button--secondary {
+  background: #f0f0f0;
+  color: #111;
+}
+
+.charm-bag-configurator__message {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+@media (max-width: 990px) {
+  .charm-bag-configurator__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .charm-bag-configurator__viewer,
+  .charm-bag-configurator__canvas {
+    min-height: 320px;
+  }
+}
