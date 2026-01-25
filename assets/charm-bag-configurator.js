@@ -224,8 +224,9 @@ function clearGroup(group) {
   }
 }
 
-async function loadGLB(loader, url) {
-  return new Promise((resolve, reject) => {
+async function loadGLB(loader, url, timeoutMs = 15000) {
+  let timeoutId;
+  const loadPromise = new Promise((resolve, reject) => {
     loader.load(
       url,
       (gltf) => resolve(gltf.scene || gltf.scenes[0]),
@@ -233,6 +234,18 @@ async function loadGLB(loader, url) {
       (error) => reject(error)
     );
   });
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error('GLB load timeout'));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([loadPromise, timeoutPromise]);
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 async function initializeConfigurator(section) {
