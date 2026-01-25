@@ -1,0 +1,307 @@
+{% comment %}
+  Charm Bag Configurator Section
+{% endcomment %}
+
+{{ 'charm-bag-configurator.css' | asset_url | stylesheet_tag }}
+<script type="module" src="{{ 'charm-bag-configurator.js' | asset_url }}"></script>
+
+<section class="charm-bag-configurator" data-section-id="{{ section.id }}">
+  <div class="charm-bag-configurator__layout">
+    <div class="charm-bag-configurator__viewer">
+      <div class="charm-bag-configurator__canvas" data-configurator-canvas>
+        <div class="charm-bag-configurator__loading" data-configurator-loading aria-live="polite">
+          Carregando configurador…
+        </div>
+        <div class="charm-bag-configurator__fallback" data-configurator-fallback hidden>
+          <p>Seu navegador não suporta WebGL. Mostrando uma visualização estática.</p>
+          <img data-configurator-fallback-image alt="Visualização da bolsa" loading="lazy">
+        </div>
+      </div>
+    </div>
+
+    <aside class="charm-bag-configurator__sidebar" data-configurator-sidebar>
+      <header class="charm-bag-configurator__header">
+        <h2 class="charm-bag-configurator__title">Monte sua bolsa</h2>
+        <p class="charm-bag-configurator__subtitle">Escolha a bolsa, adicione seus charms e selecione os slots.</p>
+      </header>
+
+      <div class="charm-bag-configurator__panel">
+        <h3>Bolsas</h3>
+        <div class="charm-bag-configurator__options" data-configurator-bags>
+          {% assign bag_index = 0 %}
+          {% for block in section.blocks %}
+            {% if block.type == 'bag' %}
+              {% assign bag_index = bag_index | plus: 1 %}
+              <button
+                type="button"
+                class="charm-bag-configurator__option"
+                data-bag-option
+                data-bag-id="{{ block.id }}"
+              >
+                {% if block.settings.bag_thumb != blank %}
+                  <img src="{{ block.settings.bag_thumb | image_url: width: 120 }}" alt="{{ block.settings.bag_label | escape }}" loading="lazy">
+                {% endif %}
+                <span>{{ block.settings.bag_label }}</span>
+              </button>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="charm-bag-configurator__panel">
+        <h3>Charms selecionados</h3>
+        <div class="charm-bag-configurator__selected" data-configurator-selected></div>
+      </div>
+
+      <div class="charm-bag-configurator__panel" data-configurator-extra-wrapper>
+        <h3>Adicionar charms</h3>
+        <div class="charm-bag-configurator__options" data-configurator-extras>
+          {% for block in section.blocks %}
+            {% if block.type == 'extra_charm' %}
+              {% assign extra_product = block.settings.charm_product %}
+              {% if extra_product != blank %}
+                {% assign extra_model_url = block.settings.charm_model_url %}
+                {% if extra_model_url == blank %}
+                  {% assign extra_model_url = extra_product.metafields.custom.model_3d_url %}
+                {% endif %}
+                {% if extra_model_url != blank %}
+                  <button
+                    type="button"
+                    class="charm-bag-configurator__option"
+                    data-extra-option
+                    data-charm-handle="{{ extra_product.handle }}"
+                    data-charm-title="{{ block.settings.charm_label | default: extra_product.title }}"
+                    data-charm-model-url="{{ extra_model_url }}"
+                    data-charm-variant-id="{{ extra_product.selected_or_first_available_variant.id }}"
+                  >
+                    {% if block.settings.charm_thumb != blank %}
+                      <img src="{{ block.settings.charm_thumb | image_url: width: 120 }}" alt="{{ block.settings.charm_label | escape }}" loading="lazy">
+                    {% elsif extra_product.featured_image != blank %}
+                      <img src="{{ extra_product.featured_image | image_url: width: 120 }}" alt="{{ extra_product.title | escape }}" loading="lazy">
+                    {% endif %}
+                    <span>{{ block.settings.charm_label | default: extra_product.title }}</span>
+                  </button>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="charm-bag-configurator__panel">
+        <h3>Slots disponíveis</h3>
+        <div class="charm-bag-configurator__slots" data-configurator-slots></div>
+      </div>
+
+      <div class="charm-bag-configurator__panel">
+        <div class="charm-bag-configurator__actions">
+          <button type="button" class="charm-bag-configurator__button" data-configurator-add>
+            Adicionar ao carrinho
+          </button>
+          {% if section.settings.show_reset_view %}
+            <button type="button" class="charm-bag-configurator__button charm-bag-configurator__button--secondary" data-configurator-reset>
+              Resetar visão
+            </button>
+          {% endif %}
+        </div>
+        <div class="charm-bag-configurator__message" data-configurator-message role="status" aria-live="polite"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="application/json" data-configurator-data>
+    {
+      "sectionId": {{ section.id | json }},
+      "allowExtraCharms": {{ section.settings.allow_extra_charms | json }},
+      "maxTotalCharms": {{ section.settings.max_total_charms | json }},
+      "defaultSlotBehavior": {{ section.settings.default_slot_behavior | json }},
+      "autoRotate": {{ section.settings.auto_rotate | json }},
+      "cameraDistance": {{ section.settings.camera_distance | json }},
+      "minZoom": {{ section.settings.min_zoom | json }},
+      "maxZoom": {{ section.settings.max_zoom | json }},
+      "bags": [
+        {% assign bag_index = 0 %}
+        {% for block in section.blocks %}
+          {% if block.type == 'bag' %}
+            {% assign bag_index = bag_index | plus: 1 %}
+            {
+              "id": {{ block.id | json }},
+              "index": {{ bag_index | json }},
+              "label": {{ block.settings.bag_label | json }},
+              "thumb": {{ block.settings.bag_thumb | image_url: width: 200 | json }},
+              "modelUrl": {{ block.settings.bag_model_url | json }},
+              "isDefault": {{ block.settings.bag_default | json }},
+              "slots": [
+                {
+                  "id": "slot1",
+                  "enabled": {{ block.settings.slot1_enabled | json }},
+                  "label": {{ block.settings.slot1_label | json }},
+                  "position": [{{ block.settings.slot1_pos_x }}, {{ block.settings.slot1_pos_y }}, {{ block.settings.slot1_pos_z }}],
+                  "rotation": [{{ block.settings.slot1_rot_x }}, {{ block.settings.slot1_rot_y }}, {{ block.settings.slot1_rot_z }}],
+                  "scale": {{ block.settings.slot1_scale | default: 1 }}
+                },
+                {
+                  "id": "slot2",
+                  "enabled": {{ block.settings.slot2_enabled | json }},
+                  "label": {{ block.settings.slot2_label | json }},
+                  "position": [{{ block.settings.slot2_pos_x }}, {{ block.settings.slot2_pos_y }}, {{ block.settings.slot2_pos_z }}],
+                  "rotation": [{{ block.settings.slot2_rot_x }}, {{ block.settings.slot2_rot_y }}, {{ block.settings.slot2_rot_z }}],
+                  "scale": {{ block.settings.slot2_scale | default: 1 }}
+                },
+                {
+                  "id": "slot3",
+                  "enabled": {{ block.settings.slot3_enabled | json }},
+                  "label": {{ block.settings.slot3_label | json }},
+                  "position": [{{ block.settings.slot3_pos_x }}, {{ block.settings.slot3_pos_y }}, {{ block.settings.slot3_pos_z }}],
+                  "rotation": [{{ block.settings.slot3_rot_x }}, {{ block.settings.slot3_rot_y }}, {{ block.settings.slot3_rot_z }}],
+                  "scale": {{ block.settings.slot3_scale | default: 1 }}
+                }
+              ]
+            }{% unless forloop.last %},{% endunless %}
+          {% endif %}
+        {% endfor %}
+      ]
+    }
+  </script>
+
+  {% comment %} Product data for current PDP charm {% endcomment %}
+  <script type="application/json" data-configurator-product>
+    {
+      "title": {{ product.title | json }},
+      "handle": {{ product.handle | json }},
+      "variantId": {{ product.selected_or_first_available_variant.id | json }},
+      "modelUrl": {{ product.metafields.custom.model_3d_url | json }},
+      "image": {{ product.featured_image | image_url: width: 240 | json }}
+    }
+  </script>
+</section>
+
+{% schema %}
+{
+  "name": "Charm Bag Configurator",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "allow_extra_charms",
+      "label": "Permitir charms extras",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "max_total_charms",
+      "label": "Máximo de charms simultâneos",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "default_slot_behavior",
+      "label": "Comportamento padrão de slot",
+      "options": [
+        { "value": "first_available", "label": "Primeiro slot livre" },
+        { "value": "ask_user", "label": "Pedir slot" }
+      ],
+      "default": "first_available"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_rotate",
+      "label": "Auto-rotacionar bolsa",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "camera_distance",
+      "label": "Distância da câmera",
+      "min": 2,
+      "max": 10,
+      "step": 0.5,
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "min_zoom",
+      "label": "Zoom mínimo",
+      "min": 1,
+      "max": 6,
+      "step": 0.5,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "max_zoom",
+      "label": "Zoom máximo",
+      "min": 2,
+      "max": 12,
+      "step": 0.5,
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "show_reset_view",
+      "label": "Mostrar botão reset",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "bag",
+      "name": "Bolsa",
+      "settings": [
+        { "type": "text", "id": "bag_label", "label": "Nome da bolsa" },
+        { "type": "image_picker", "id": "bag_thumb", "label": "Thumbnail" },
+        { "type": "url", "id": "bag_model_url", "label": "URL do modelo GLB" },
+        { "type": "checkbox", "id": "bag_default", "label": "Bolsa padrão", "default": false },
+        { "type": "header", "content": "Slot 1" },
+        { "type": "checkbox", "id": "slot1_enabled", "label": "Habilitar slot 1", "default": true },
+        { "type": "text", "id": "slot1_label", "label": "Nome do slot 1", "default": "Slot 1" },
+        { "type": "number", "id": "slot1_pos_x", "label": "Slot 1 posição X", "default": 0 },
+        { "type": "number", "id": "slot1_pos_y", "label": "Slot 1 posição Y", "default": 0 },
+        { "type": "number", "id": "slot1_pos_z", "label": "Slot 1 posição Z", "default": 0 },
+        { "type": "number", "id": "slot1_rot_x", "label": "Slot 1 rotação X (graus)", "default": 0 },
+        { "type": "number", "id": "slot1_rot_y", "label": "Slot 1 rotação Y (graus)", "default": 0 },
+        { "type": "number", "id": "slot1_rot_z", "label": "Slot 1 rotação Z (graus)", "default": 0 },
+        { "type": "number", "id": "slot1_scale", "label": "Slot 1 escala", "default": 1 },
+        { "type": "header", "content": "Slot 2" },
+        { "type": "checkbox", "id": "slot2_enabled", "label": "Habilitar slot 2", "default": false },
+        { "type": "text", "id": "slot2_label", "label": "Nome do slot 2", "default": "Slot 2" },
+        { "type": "number", "id": "slot2_pos_x", "label": "Slot 2 posição X", "default": 0 },
+        { "type": "number", "id": "slot2_pos_y", "label": "Slot 2 posição Y", "default": 0 },
+        { "type": "number", "id": "slot2_pos_z", "label": "Slot 2 posição Z", "default": 0 },
+        { "type": "number", "id": "slot2_rot_x", "label": "Slot 2 rotação X (graus)", "default": 0 },
+        { "type": "number", "id": "slot2_rot_y", "label": "Slot 2 rotação Y (graus)", "default": 0 },
+        { "type": "number", "id": "slot2_rot_z", "label": "Slot 2 rotação Z (graus)", "default": 0 },
+        { "type": "number", "id": "slot2_scale", "label": "Slot 2 escala", "default": 1 },
+        { "type": "header", "content": "Slot 3" },
+        { "type": "checkbox", "id": "slot3_enabled", "label": "Habilitar slot 3", "default": false },
+        { "type": "text", "id": "slot3_label", "label": "Nome do slot 3", "default": "Slot 3" },
+        { "type": "number", "id": "slot3_pos_x", "label": "Slot 3 posição X", "default": 0 },
+        { "type": "number", "id": "slot3_pos_y", "label": "Slot 3 posição Y", "default": 0 },
+        { "type": "number", "id": "slot3_pos_z", "label": "Slot 3 posição Z", "default": 0 },
+        { "type": "number", "id": "slot3_rot_x", "label": "Slot 3 rotação X (graus)", "default": 0 },
+        { "type": "number", "id": "slot3_rot_y", "label": "Slot 3 rotação Y (graus)", "default": 0 },
+        { "type": "number", "id": "slot3_rot_z", "label": "Slot 3 rotação Z (graus)", "default": 0 },
+        { "type": "number", "id": "slot3_scale", "label": "Slot 3 escala", "default": 1 }
+      ]
+    },
+    {
+      "type": "extra_charm",
+      "name": "Charm extra",
+      "settings": [
+        { "type": "product", "id": "charm_product", "label": "Produto" },
+        { "type": "text", "id": "charm_label", "label": "Nome (opcional)" },
+        { "type": "image_picker", "id": "charm_thumb", "label": "Thumbnail (opcional)" },
+        { "type": "url", "id": "charm_model_url", "label": "URL do modelo GLB" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Charm Bag Configurator",
+      "category": "Custom"
+    }
+  ]
+}
+{% endschema %}
