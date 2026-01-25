@@ -9,13 +9,18 @@
   <div class="charm-bag-configurator__layout">
     <div class="charm-bag-configurator__viewer">
       <div class="charm-bag-configurator__canvas" data-configurator-canvas>
-        <div class="charm-bag-configurator__loading" data-configurator-loading aria-live="polite">
+        <div class="charm-bag-configurator__loading" data-configurator-loading aria-live="polite" hidden>
           Carregando configurador…
         </div>
         <div class="charm-bag-configurator__fallback" data-configurator-fallback hidden>
           <p>Seu navegador não suporta WebGL. Mostrando uma visualização estática.</p>
           <img data-configurator-fallback-image alt="Visualização da bolsa" loading="lazy">
         </div>
+        <noscript>
+          <div class="charm-bag-configurator__fallback">
+            <p>Ative o JavaScript para visualizar o configurador 3D.</p>
+          </div>
+        </noscript>
       </div>
     </div>
 
