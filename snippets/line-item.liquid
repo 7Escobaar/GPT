@@ -1,0 +1,319 @@
+{%- if line_item.variant.inventory_management != blank and line_item.variant.inventory_policy == 'deny' -%}
+ {%- assign line_max_quantity = line_item.variant.inventory_quantity -%}
+{%- endif -%}
+
+
+{%- comment -%} Regra: desconto progressivo aplicado APENAS ao item mais barato (1 unidade) {%- endcomment -%}
+{%- assign cart_quantity = cart.item_count -%}
+{%- assign discount_percentage = 0 -%}
+
+
+{%- if cart_quantity >= 4 -%}
+ {%- assign discount_percentage = 25 -%}
+{%- elsif cart_quantity == 3 -%}
+ {%- assign discount_percentage = 20 -%}
+{%- elsif cart_quantity == 2 -%}
+ {%- assign discount_percentage = 15 -%}
+{%- endif -%}
+
+
+{%- assign cheapest_line_key = blank -%}
+{%- assign cheapest_unit_price = blank -%}
+
+{%- for cart_line_item in cart.items -%}
+ {%- if cheapest_unit_price == blank or cart_line_item.original_price < cheapest_unit_price -%}
+   {%- assign cheapest_unit_price = cart_line_item.original_price -%}
+   {%- assign cheapest_line_key = cart_line_item.key -%}
+ {%- endif -%}
+{%- endfor -%}
+
+{%- assign is_cheapest_line = false -%}
+{%- if line_item.key == cheapest_line_key -%}
+ {%- assign is_cheapest_line = true -%}
+{%- endif -%}
+
+{%- assign progressive_discount_amount = 0 -%}
+{%- if discount_percentage > 0 and is_cheapest_line and cheapest_unit_price != blank -%}
+ {%- assign progressive_discount_amount = cheapest_unit_price | times: discount_percentage | divided_by: 100.0 | round -%}
+{%- endif -%}
+
+{%- assign original_price = line_item.original_price -%}
+{%- assign original_line_price = line_item.original_line_price -%}
+{%- assign discounted_price = original_price | minus: progressive_discount_amount -%}
+{%- assign discounted_line_price = original_line_price | minus: progressive_discount_amount -%}
+
+
+<line-item class="line-item" data-line-item data-line-item-key="{{ line_item.key }}" data-has-progressive-discount="{% if progressive_discount_amount > 0 %}true{% else %}false{% endif %}" data-cart-count="{{ cart_quantity }}">
+ {%- if line_item.image != blank -%}
+   <div class="line-item__media-wrapper">
+     {{- line_item.image | image_url: width: line_item.image.width | image_tag: loading: 'lazy', sizes: '(max-width: 740px) 80px, 96px', widths: '80,96,160,192', class: 'line-item__media rounded-xs' -}}
+
+
+     <pill-loader class="pill-loader"></pill-loader>
+   </div>
+ {%- endif -%}
+
+
+ <div class="line-item__info">
+   <div class="v-stack gap-0.5">
+     {%- if line_item.url != blank -%}
+       <a href="{{ line_item.url }}" class="bold">
+         <span class="reversed-link hover:show">{{ line_item.product.title | default: line_item.title }}</span>
+       </a>
+     {%- else -%}
+       <p class="bold">{{ line_item.product.title | default: line_item.title }}</p>
+     {%- endif -%}
+
+
+     {%- comment -%} Preço com desconto progressivo apenas no item mais barato {%- endcomment -%}
+     <div class="line-item__price-wrapper">
+       {%- if progressive_discount_amount > 0 -%}
+         <span class="line-item__original-price">
+           {%- if line_item.quantity > 1 -%}
+             {{ original_line_price | money }}
+           {%- else -%}
+             {{ original_price | money }}
+           {%- endif -%}
+         </span>
+
+         <span class="line-item__discounted-price">
+           {%- if line_item.quantity > 1 -%}
+             {{ discounted_line_price | money }}
+           {%- else -%}
+             {{ discounted_price | money }}
+           {%- endif -%}
+         </span>
+
+         <span class="line-item__discount-badge">
+           {{ discount_percentage }}% OFF
+         </span>
+       {%- else -%}
+         {%- render 'price-list', line_item: line_item -%}
+       {%- endif -%}
+     </div>
+   </div>
+
+
+   {%- unless line_item.product.has_only_default_variant or line_item.gift_card -%}
+     <p class="text-sm text-subdued">{{ line_item.variant.title }}</p>
+   {%- endunless -%}
+
+
+   {%- if line_item.selling_plan_allocation -%}
+     <p class="text-sm text-subdued">{{ line_item.selling_plan_allocation.selling_plan.name }}</p>
+   {%- endif -%}
+
+
+   {%- unless line_item.properties == blank -%}
+     <ul class="list-disc">
+       {%- for property in line_item.properties -%}
+         {%- assign first_character_in_key = property.first | truncate: 1, '' -%}
+
+
+         {%- if property.last == blank or first_character_in_key == '_' -%}
+           {%- continue -%}
+         {%- endif -%}
+
+
+         <li class="text-sm text-subdued">
+           {%- if property.last contains '/uploads/' -%}
+             <a href="{{ property.last }}" class="link">{{ property.last | split: '/' | last }}</a>
+           {%- else -%}
+             {{ property.first }}: {{ property.last }}
+           {%- endif -%}
+         </li>
+       {%- endfor -%}
+     </ul>
+   {%- endunless -%}
+
+
+   <div class="text-sm text-subdued sm:hidden">
+     {%- if line_item.url_to_remove -%}
+       <line-item-quantity class="h-stack justify-center gap-3">
+         <input class="quantity-input" type="text" is="quantity-input" inputmode="numeric" {% if line_max_quantity %}max="{{ line_max_quantity }}"{% endif %} data-line-key="{{ line_item.key }}" aria-label="{{ 'cart.order.change_quantity' | t | escape }}" value="{{ line_item.quantity }}">
+
+
+         <span class="text-xs">
+           <a href="{{ line_item.url_to_remove }}" class="link">{{ 'cart.order.remove' | t }}</a>
+         </span>
+       </line-item-quantity>
+     {%- else -%}
+       {{- 'customer.order.quantity' | t }}: {{ line_item.quantity -}}
+     {%- endif -%}
+   </div>
+
+
+   {%- if line_item.line_level_discount_allocations != blank -%}
+     <ul class="contents" role="list">
+       {%- for discount_allocation in line_item.line_level_discount_allocations -%}
+         <li class="badge">
+           {%- render 'icon' with 'discount' -%} {{ discount_allocation.discount_application.title }} (-{{ discount_allocation.amount | money }})
+         </li>
+       {%- endfor -%}
+     </ul>
+   {%- endif -%}
+ </div>
+
+
+ {%- if show_desktop_quantity -%}
+   <div class="line-item__actions text-subdued hidden sm:block">
+     <line-item-quantity class="v-stack gap-2">
+       <input class="quantity-input" type="text" is="quantity-input" inputmode="numeric" {% if line_max_quantity %}max="{{ line_max_quantity }}"{% endif %} data-line-key="{{ line_item.key }}" aria-label="{{ 'cart.order.change_quantity' | t | escape }}" value="{{ line_item.quantity }}">
+
+
+       <span class="text-xs text-center">
+         <a href="{{ line_item.url_to_remove }}" class="link">{{ 'cart.order.remove' | t }}</a>
+       </span>
+     </line-item-quantity>
+   </div>
+ {%- endif -%}
+</line-item>
+
+
+<style>
+.line-item__price-wrapper {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ flex-wrap: wrap;
+}
+
+
+/* Preço original riscado */
+.line-item__original-price {
+ color: #999;
+ text-decoration: line-through;
+ text-decoration-color: #ff0000;
+ text-decoration-thickness: 2px;
+ font-size: 14px;
+ font-weight: 400;
+}
+
+
+/* Preço com desconto */
+.line-item__discounted-price {
+ color: #5C1B25;
+ font-weight: 600;
+ font-size: 16px;
+}
+
+
+/* Badge de desconto */
+.line-item__discount-badge {
+ font-weight: bold;
+ padding: 4px 8px;
+ border-radius: 4px;
+ font-size: 12px;
+ transition: all 0.6s ease;
+ display: inline-block;
+ text-transform: uppercase;
+ letter-spacing: 0.5px;
+ position: relative;
+ overflow: hidden;
+}
+
+
+/* Cores específicas baseadas na quantidade do carrinho */
+[data-has-progressive-discount="true"][data-cart-count="2"] .line-item__discount-badge {
+ background: linear-gradient(135deg, #2aa954, #1f8b42);
+ color: white;
+ box-shadow: 0 2px 6px rgba(42, 169, 84, 0.3);
+}
+
+
+[data-has-progressive-discount="true"][data-cart-count="3"] .line-item__discount-badge {
+ background: linear-gradient(135deg, #fc8108, #e67100);
+ color: white;
+ box-shadow: 0 2px 6px rgba(252, 129, 8, 0.3);
+}
+
+
+[data-has-progressive-discount="true"][data-cart-count="4"] .line-item__discount-badge,
+[data-has-progressive-discount="true"][data-cart-count="5"] .line-item__discount-badge,
+[data-has-progressive-discount="true"][data-cart-count="6"] .line-item__discount-badge,
+[data-has-progressive-discount="true"][data-cart-count="7"] .line-item__discount-badge,
+[data-has-progressive-discount="true"][data-cart-count="8"] .line-item__discount-badge,
+[data-has-progressive-discount="true"][data-cart-count="9"] .line-item__discount-badge,
+[data-has-progressive-discount="true"][data-cart-count="10"] .line-item__discount-badge {
+ background: linear-gradient(135deg, #ff0000, #cc0000);
+ color: white;
+ box-shadow: 0 2px 6px rgba(255, 0, 0, 0.3);
+}
+
+
+/* Efeito de brilho no badge */
+.line-item__discount-badge::before {
+ content: '';
+ position: absolute;
+ top: 0;
+ left: -100%;
+ width: 100%;
+ height: 100%;
+ background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+ transition: left 0.5s;
+}
+
+
+.line-item__discount-badge:hover::before {
+ left: 100%;
+}
+
+
+/* Garante que apenas itens com desconto progressivo ativado mostrem o badge */
+[data-has-progressive-discount="false"] .line-item__discount-badge,
+line-item:not([data-has-progressive-discount]) .line-item__discount-badge {
+ display: none;
+}
+
+
+/* Animação para aparição do badge */
+[data-has-progressive-discount="true"] .line-item__discount-badge {
+ animation: badgeAppear 0.5s ease-out;
+}
+
+
+@keyframes badgeAppear {
+ 0% {
+   transform: scale(0.8) translateY(-10px);
+   opacity: 0;
+ }
+ 50% {
+   transform: scale(1.1) translateY(-2px);
+ }
+ 100% {
+   transform: scale(1) translateY(0);
+   opacity: 1;
+ }
+}
+
+
+/* Responsividade */
+@media screen and (max-width: 749px) {
+ .line-item__price-wrapper {
+   gap: 6px;
+ }
+  .line-item__original-price {
+   font-size: 13px;
+ }
+  .line-item__discounted-price {
+   font-size: 15px;
+ }
+  .line-item__discount-badge {
+   font-size: 11px;
+   padding: 3px 6px;
+ }
+}
+
+
+/* Animação de pulso para destacar o desconto */
+@keyframes discountPulse {
+ 0% { transform: scale(1); }
+ 50% { transform: scale(1.05); }
+ 100% { transform: scale(1); }
+}
+
+
+[data-has-progressive-discount="true"] .line-item__discounted-price {
+ animation: discountPulse 2s ease-in-out infinite;
+}
+</style>

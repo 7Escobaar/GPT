@@ -1,0 +1,758 @@
+<cart-drawer {% if request.design_mode %}handle-section-events{% endif %} class="cart-drawer drawer drawer--lg" id="cart-drawer">
+
+
+{%- if cart.item_count == 0 -%}
+ <button is="close-button" aria-label="{{ 'general.accessibility.close' | t | escape }}">
+   {%- render 'icon' with 'close' -%}
+ </button>
+
+
+ <div class="empty-state align-self-center">
+   <div class="empty-state__icon-wrapper">
+     {%- render 'icon' with 'cart', width: 32, height: 32, stroke_width: 1 -%}
+     <span class="count-bubble count-bubble--lg">0</span>
+   </div>
+
+
+   <div class="prose">
+     <p class="h5">{{ 'cart.general.empty' | t }}</p>
+
+
+     {%- assign button_content = 'cart.general.continue_shopping' | t -%}
+     {%- render 'button', href: settings.cart_empty_button_link, size: 'xl', content: button_content -%}
+   </div>
+ </div>
+{%- else -%}
+ <div>
+   <div class="cart-drawer__top">
+     <div class="h-stack items-center justify-between">
+       <div class="h-stack gap-2 sm:gap-2.5">
+         <p class="h5">{{- 'cart.general.title' | t -}}</p>
+         <cart-count class="count-bubble count-bubble--md">{{ cart.item_count }}</cart-count>
+       </div>
+
+
+       <button type="button" is="close-button" class="drawer__close-icon">
+         <span class="sr-only">{{ 'general.accessibility.close' | t }}</span>
+         {%- render 'icon' with 'close' -%}
+       </button>
+     </div>
+
+
+
+     {%- if settings.cart_show_free_shipping_threshold -%}
+       {%- render 'free-shipping-bar' -%}
+     {%- endif -%}
+
+
+     <div class="buy-get-free" style="z-index: 1;" data-cart-count="{{ cart.item_count }}">
+       <div class="buy-get-free__header">
+         <h3 class="h6 buy-get-free__title">Desconto Progressivo</h3>
+       </div>
+
+       <div class="buy-get-free__bar">
+         <div class="buy-get-free__progress"></div>
+
+         <div class="buy-get-free__tier" data-tier="2">
+           <div class="buy-get-free__node">2</div>
+           <div class="buy-get-free__label">2 Itens</div>
+           <div class="buy-get-free__bonus"><strong class="discount-text" data-discount="15">15% OFF</strong></div>
+         </div>
+
+
+         <div class="buy-get-free__tier" data-tier="3">
+           <div class="buy-get-free__node">3</div>
+           <div class="buy-get-free__label">3 Itens</div>
+           <div class="buy-get-free__bonus"><strong class="discount-text" data-discount="20">20% OFF</strong></div>
+         </div>
+
+
+         <div class="buy-get-free__tier" data-tier="4">
+           <div class="buy-get-free__node">4</div>
+           <div class="buy-get-free__label">4+ Itens</div>
+           <div class="buy-get-free__bonus"><strong class="discount-text" data-discount="25">25% OFF</strong></div>
+         </div>
+       </div>
+
+
+       <div class="buy-get-free__message"></div>
+     </div>
+   </div>
+
+
+   <div class="v-stack gap-6 sm:gap-8">
+     <div class="cart-drawer__line-items">
+       {%- for line_item in cart.items -%}
+         {%- render 'line-item', line_item: line_item, show_desktop_quantity: true -%}
+       {%- endfor -%}
+     </div>
+
+
+     {%- if section.settings.products.count > 0 -%}
+       <div class="cart-drawer__recommendations">
+         <div class="v-stack gap-2.5 sm:gap-4">
+           {%- capture carousel_id -%}cart-drawer-recommendations{%- endcapture -%}
+
+
+           {%- if section.settings.recommendations_title != blank or section.settings.products.count > 1 -%}
+             <div class="h-stack justify-between gap-4">
+               {%- if section.settings.recommendations_title != blank -%}
+                 <p>{{ section.settings.recommendations_title | escape }}</p>
+               {%- endif -%}
+
+
+               {%- if section.settings.products.count > 1 -%}
+                 <div class="h-stack gap-2 hidden sm:flex">
+                   <button is="prev-button" class="circle-chevron hover:colors" aria-controls="{{ carousel_id }}" aria-label="{{ 'general.accessibility.previous' | t | escape }}" disabled>{%- render 'icon' with 'chevron-left-small', direction_aware: true -%}</button>
+                   <button is="next-button" class="circle-chevron hover:colors" aria-controls="{{ carousel_id }}" aria-label="{{ 'general.accessibility.next' | t | escape }}">{%- render 'icon' with 'chevron-right-small', direction_aware: true -%}</button>
+                 </div>
+               {%- endif -%}
+             </div>
+           {%- endif -%}
+
+
+           {%- assign horizontal_products_blends = true -%}
+           {%- assign product_card_background = section.settings.product_card_background | default: product.settings.product_card_background -%}
+
+
+           {%- if product_card_background != 'rgba(0,0,0,0)' and product_card_background != blank and product_card_background != settings.dialog_background -%}
+             {%- assign horizontal_products_blends = false -%}
+           {%- endif -%}
+
+
+           <scroll-carousel selector=".horizontal-product" id="{{ carousel_id }}" class="horizontal-product-list-carousel {% unless horizontal_products_blends %}separate{% endunless %} scroll-area bleed">
+             <div class="horizontal-product-list {% if horizontal_products_blends %}divide-x{% else %}separate{% endif %}">
+               {%- for recommended_product in section.settings.products -%}
+                 {%- render 'horizontal-product', product: recommended_product, show_add_to_cart: true, background: section.settings.product_card_background, text_color: section.settings.product_card_text_color -%}
+               {%- endfor -%}
+             </div>
+           </scroll-carousel>
+         </div>
+       </div>
+     {%- endif -%}
+   </div>
+ </div>
+
+
+ <div class="v-stack gap-4 sm:gap-6" slot="footer">
+   <div class="v-stack gap-1">
+     {% for discount_application in cart.cart_level_discount_applications %}
+       <div class="h-stack gap-4 justify-between">
+         <div class="badge">
+           {%- render 'icon' with 'discount' -%} {{- discount_application.title -}}
+         </div>
+
+
+         <span class="text-subdued">-{{ discount_application.total_allocated_amount | money }}</span>
+       </div>
+     {% endfor %}
+
+
+     <div class="h-stack gap-4 justify-between">
+       <span class="h5">{{ 'cart.general.total' | t }}</span>
+       <div class="cart-total-container">
+         {%- comment -%} Regra: desconto progressivo aplicado APENAS no item mais barato (1 unidade) {%- endcomment -%}
+         {%- assign cart_quantity = cart.item_count -%}
+         {%- assign total_discount_percentage = 0 -%}
+
+         {%- if cart_quantity >= 4 -%}
+           {%- assign total_discount_percentage = 25 -%}
+         {%- elsif cart_quantity == 3 -%}
+           {%- assign total_discount_percentage = 20 -%}
+         {%- elsif cart_quantity == 2 -%}
+           {%- assign total_discount_percentage = 15 -%}
+         {%- endif -%}
+
+         {%- assign original_total = 0 -%}
+         {%- assign cheapest_unit_price = blank -%}
+
+         {%- for cart_line_item in cart.items -%}
+           {%- assign original_total = original_total | plus: cart_line_item.original_line_price -%}
+
+           {%- if cheapest_unit_price == blank or cart_line_item.original_price < cheapest_unit_price -%}
+             {%- assign cheapest_unit_price = cart_line_item.original_price -%}
+           {%- endif -%}
+         {%- endfor -%}
+
+         {%- assign discount_amount = 0 -%}
+         {%- if total_discount_percentage > 0 and cheapest_unit_price != blank -%}
+           {%- assign discount_amount = cheapest_unit_price | times: total_discount_percentage | divided_by: 100.0 | round -%}
+         {%- endif -%}
+
+         {%- assign discounted_total = original_total | minus: discount_amount -%}
+
+         {%- if discount_amount > 0 -%}
+           <span class="original-price">{{ original_total | money }}</span>
+           <span class="final-price">{{ discounted_total | money }}</span>
+         {%- else -%}
+           <span class="final-price">{{ cart.total_price | money }}</span>
+         {%- endif -%}
+       </div>
+     </div>
+
+
+     {%- if section.settings.show_shipping_text -%}
+       {%- if cart.taxes_included and shop.shipping_policy.body != blank -%}
+         <p class="text-subdued text-sm">{{ 'cart.general.taxes_included_and_shipping_policy_html' | t: link: shop.shipping_policy.url }}</p>
+       {%- elsif cart.taxes_included -%}
+         <p class="text-subdued text-sm">{{ 'cart.general.taxes_included_but_shipping_at_checkout' | t }}</p>
+       {%- elsif shop.shipping_policy.body != blank -%}
+         <p class="text-subdued text-sm">{{ 'cart.general.taxes_and_shipping_policy_at_checkout_html' | t: link: shop.shipping_policy.url }}</p>
+       {%- else -%}
+         <p class="text-subdued text-sm">{{ 'cart.general.taxes_and_shipping_at_checkout' | t }}</p>
+       {%- endif -%}
+     {%- endif -%}
+
+
+     {%- if section.settings.show_cart_note -%}
+       <button type="button" class="justify-self-start" aria-controls="cart-drawer-note">
+         <span class="link text-sm text-subdued">
+           {%- if cart.note == blank -%}
+             {{- 'cart.general.add_order_note' | t -}}
+           {%- else -%}
+             {{- 'cart.general.edit_order_note' | t -}}
+           {%- endif -%}
+         </span>
+       </button>
+
+
+       <cart-note-dialog id="cart-drawer-note" class="cart-drawer__note">
+         <div class="cart-drawer__note-inner">
+           <div class="v-stack gap-4 sm:gap-6">
+             <p class="h5">{{ 'cart.general.order_note' | t }}</p>
+
+
+             <cart-note class="v-stack gap-4">
+               {%- assign order_note = 'cart.general.order_note' | t -%}
+               {%- assign order_save_label = 'cart.general.save_note' | t -%}
+
+
+               {%- render 'input', name: 'note', multiline: 3, label: order_note, value: cart.note -%}
+
+
+               <div class="justify-self-start">
+                 {%- render 'button', type: 'button', content: order_save_label, size: 'lg', is: 'close-button', secondary: true -%}
+               </div>
+             </cart-note>
+           </div>
+         </div>
+       </cart-note-dialog>
+     {%- endif -%}
+   </div>
+
+
+   <form action="{{ routes.cart_url }}" method="POST" class="buy-buttons {% if section.settings.show_checkout_button %}buy-buttons--compact{% endif %}">
+     {%- assign checkout_label = 'cart.general.checkout' | t -%}
+
+
+     {%- if section.settings.show_view_cart_button or section.settings.show_checkout_button == false -%}
+       <a href="{{ routes.cart_url }}" class="button button--xl {% if section.settings.show_checkout_button %}button--secondary{% endif %}" data-no-instant>
+         {{- 'cart.general.view_cart' | t -}}
+       </a>
+     {%- endif -%}
+
+     {%- if section.settings.show_checkout_button -%}
+       {%- render 'button', type: 'submit', content: checkout_label, icon: 'picto-lock', name: 'checkout', size: 'xl' -%}
+     {%- endif -%}
+   </form>
+ </div>
+{%- endif -%}
+
+
+<style>
+ .cart-drawer {
+   overflow-x: hidden !important;
+   overflow-y: auto !important;
+   touch-action: pan-y pinch-zoom !important;
+ }
+
+
+ .cart-drawer > div,
+ .cart-drawer__top,
+ .cart-drawer__line-items,
+ .cart-drawer__recommendations {
+   overflow-x: visible !important;
+   max-width: 100% !important;
+   width: 100% !important;
+ }
+
+
+ .v-stack,
+ .h-stack {
+   overflow: visible !important;
+   max-width: 100% !important;
+   width: 100% !important;
+ }
+
+
+ .buy-get-free {
+   background: white;
+   padding: 12px 15px 15px;
+   margin: 8px 0;
+   overflow: visible;
+ }
+
+
+ .buy-get-free__header {
+   text-align: center;
+   margin-bottom: 15px;
+ }
+
+
+ .buy-get-free__title {
+   margin: 0;
+   font-size: 16px;
+   font-weight: 500;
+   text-transform: none;
+ }
+
+
+ .buy-get-free__bar {
+   position: relative;
+   height: 2px;
+   background: #E5E7EB;
+   margin: 20px 15px 50px;
+   padding: 0;
+   overflow: visible;
+ }
+
+
+ .buy-get-free__progress {
+   position: absolute;
+   left: 0;
+   top: 0;
+   height: 2px;
+   background: #5C1B25;
+   transition: width 0.3s ease;
+ }
+
+
+ .buy-get-free__tier {
+   position: absolute;
+   top: -10px;
+   text-align: center;
+   width: 90px;
+   overflow: visible;
+ }
+
+
+ .buy-get-free__tier:nth-child(2) {
+   left: 0%;
+   transform: translateX(0);
+ }
+ .buy-get-free__tier:nth-child(3) {
+   left: 50%;
+   transform: translateX(-50%);
+ }
+ .buy-get-free__tier:nth-child(4) {
+   left: 100%;
+   transform: translateX(-100%);
+ }
+
+
+ .buy-get-free__node {
+   width: 20px;
+   height: 20px;
+   border-radius: 50%;
+   background: white;
+   border: 1px solid #E5E7EB;
+   margin: 0 auto 12px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-weight: 500;
+   font-size: 12px;
+   position: relative;
+   z-index: 2;
+ }
+
+
+ .buy-get-free__tier[data-active="true"] .buy-get-free__node {
+   background: #5C1B25;
+   border-color: #5C1B25;
+   color: white;
+ }
+
+
+ .buy-get-free__tier[data-completed="true"] .buy-get-free__node {
+   background: #5C1B25;
+   border-color: #5C1B25;
+   color: white;
+ }
+
+
+ .buy-get-free__label {
+   font-size: 13px;
+   color: #000;
+   margin-bottom: 3px;
+   white-space: nowrap;
+   line-height: 1.2;
+ }
+
+
+ .buy-get-free__bonus {
+   font-size: 13px;
+   font-weight: 500;
+   white-space: nowrap;
+   color: #000;
+   margin-bottom: 12px;
+   line-height: 1.2;
+ }
+
+
+ .buy-get-free__message {
+   text-align: center;
+   font-size: 13px;
+   color: #000;
+   margin-top: 0;
+   padding-top: 15px;
+   overflow: visible;
+ }
+
+
+ /* Estilos para o preço total */
+ .cart-total-container {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-end;
+   gap: 2px;
+ }
+
+
+ .original-price {
+   font-size: 14px;
+   color: #999;
+   text-decoration: line-through;
+   text-decoration-color: #ff0000;
+   text-decoration-thickness: 2px;
+   font-weight: 400;
+ }
+
+
+ .final-price {
+   font-size: 18px;
+   font-weight: 600;
+   color: #5C1B25;
+ }
+
+
+ /* Ajustes específicos para desktop */
+ @media screen and (min-width: 750px) {
+   .buy-get-free {
+     padding: 15px 20px 20px;
+   }
+
+   .buy-get-free__bar {
+     margin: 25px 20px 55px;
+   }
+
+   .buy-get-free__tier {
+     width: 100px;
+   }
+
+   .buy-get-free__label {
+     font-size: 14px;
+   }
+
+
+   .buy-get-free__bonus {
+     font-size: 14px;
+   }
+
+   .buy-get-free__tier:nth-child(2) {
+     left: 0%;
+     transform: translateX(10px);
+   }
+   .buy-get-free__tier:nth-child(3) {
+     left: 50%;
+     transform: translateX(-50%);
+   }
+   .buy-get-free__tier:nth-child(4) {
+     left: 100%;
+     transform: translateX(-110px);
+   }
+ }
+
+
+ /* Estilo base para os textos de desconto */
+ .discount-text {
+   font-size: 13px;
+   transition: all 0.4s ease;
+   transform-origin: center;
+   display: inline-block;
+ }
+
+
+ /* Estilos para animação baseados em classes adicionadas via JS */
+ .discount-active-15 {
+   font-size: 14px;
+   color: #5C1B25;
+   animation: pulse 1.5s infinite;
+ }
+
+
+ .discount-active-20 {
+   font-size: 15px;
+   color: #5C1B25;
+   animation: pulse 1.5s infinite;
+ }
+
+
+ .discount-active-25 {
+   font-size: 16px;
+   color: #5C1B25;
+   animation: pulse 1.5s infinite;
+   font-weight: 700;
+ }
+
+
+ @keyframes pulse {
+   0% { transform: scale(1); }
+   50% { transform: scale(1.1); }
+   100% { transform: scale(1); }
+ }
+
+
+ @media screen and (max-width: 749px) {
+   .buy-get-free {
+     padding: 12px 15px 15px;
+   }
+
+   .buy-get-free__bar {
+     margin: 20px 20px 50px;
+   }
+
+
+   .buy-get-free__tier {
+     width: 70px;
+   }
+
+
+   .buy-get-free__tier:nth-child(2) {
+     left: 0%;
+     transform: translateX(5px);
+   }
+   .buy-get-free__tier:nth-child(3) {
+     left: 50%;
+     transform: translateX(-50%);
+   }
+   .buy-get-free__tier:nth-child(4) {
+     left: 100%;
+     transform: translateX(-75px);
+   }
+
+
+   .buy-get-free__label {
+     font-size: 11px;
+   }
+
+
+   .buy-get-free__bonus {
+     font-size: 11px;
+   }
+
+   /* Ajustes para mobile */
+   .discount-active-15 {
+     font-size: 12px;
+   }
+
+
+   .discount-active-20 {
+     font-size: 13px;
+   }
+
+
+   .discount-active-25 {
+     font-size: 14px;
+   }
+ }
+
+
+ .buy-get-free__message {
+   text-align: center;
+   font-size: 13px;
+   color: #000;
+   margin-top: 0;
+   padding-top: 15px;
+ }
+</style>
+
+
+<script>
+// Função que atualiza a barra baseada na quantidade (apenas visual)
+function updateBar(quantity) {
+ const bar = document.querySelector('.buy-get-free__progress');
+ const nodes = document.querySelectorAll('.buy-get-free__node');
+ const discountTexts = document.querySelectorAll('.discount-text');
+ if (!bar) return;
+
+
+ // Define a largura baseada na quantidade
+ if (quantity >= 4) {
+   bar.style.width = '100%';
+ } else if (quantity === 3) {
+   bar.style.width = '66%';
+ } else if (quantity === 2) {
+   bar.style.width = '33%';
+ } else if (quantity === 1) {
+   bar.style.width = '5%';
+ } else {
+   bar.style.width = '0%';
+ }
+
+
+ // Atualiza o estilo das bolinhas
+ nodes.forEach((node, index) => {
+   // Reseta todas as bolinhas primeiro
+   node.style.background = 'white';
+   node.style.borderColor = '#E5E7EB';
+   node.style.color = '#000';
+
+
+   // Lógica de preenchimento acumulativo:
+   // - 2 produtos: preenche a primeira bolinha
+   // - 3 produtos: preenche primeira e segunda bolinha
+   // - 4+ produtos: preenche primeira, segunda e terceira bolinha
+   if (
+     (quantity >= 2 && index === 0) || // Primeira bolinha: 2+ produtos
+     (quantity >= 3 && index === 1) || // Segunda bolinha: 3+ produtos
+     (quantity >= 4 && index === 2)    // Terceira bolinha: 4+ produtos
+   ) {
+     node.style.background = '#5C1B25';
+     node.style.borderColor = '#5C1B25';
+     node.style.color = '#fff';
+   }
+ });
+  // Resetar todas as animações de texto primeiro
+ discountTexts.forEach(text => {
+   text.classList.remove('discount-active-15', 'discount-active-20', 'discount-active-25');
+ });
+  // Aplicar animação baseada na quantidade (apenas visual)
+ if (quantity >= 4) {
+   // Ativar animação para 25% OFF
+   const discount25 = document.querySelector('.discount-text[data-discount="25"]');
+   if (discount25) discount25.classList.add('discount-active-25');
+ } else if (quantity === 3) {
+   // Ativar animação para 20% OFF
+   const discount20 = document.querySelector('.discount-text[data-discount="20"]');
+   if (discount20) discount20.classList.add('discount-active-20');
+ } else if (quantity === 2) {
+   // Ativar animação para 15% OFF
+   const discount15 = document.querySelector('.discount-text[data-discount="15"]');
+   if (discount15) discount15.classList.add('discount-active-15');
+ }
+}
+
+
+// Função que pega a quantidade atual do carrinho
+function getCartQuantity() {
+ const countElement = document.querySelector('cart-count');
+ return countElement ? parseInt(countElement.textContent) || 0 : 0;
+}
+
+
+// Função que inicia a observação
+function initBarObserver() {
+ // Observa QUALQUER mudança no carrinho
+ const observer = new MutationObserver(function() {
+   updateBar(getCartQuantity());
+ });
+
+
+ // Observa o elemento cart-count e todo seu conteúdo
+ const cartCount = document.querySelector('cart-count');
+ if (cartCount) {
+   observer.observe(cartCount, {
+     childList: true,
+     characterData: true,
+     subtree: true
+   });
+ }
+
+
+ // Atualiza assim que carregar
+ updateBar(getCartQuantity());
+}
+
+
+// Inicia quando o DOM carregar
+document.addEventListener('DOMContentLoaded', () => {
+ initBarObserver();
+});
+
+
+// Reinicia quando as seções são recarregadas
+document.addEventListener('shopify:section:load', function(event) {
+ if (event.target.querySelector('.buy-get-free')) {
+   initBarObserver();
+ }
+});
+</script>
+
+
+{% schema %}
+{
+ "name": "Cart drawer",
+ "settings": [
+   {
+     "type": "paragraph",
+     "content": "Cart drawer won't appear to your customers if you have set the cart type to Page in the global theme settings."
+   },
+   {
+     "type": "paragraph",
+     "content": "Free shipping bar can be configured in global cart settings."
+   },
+   {
+     "type": "checkbox",
+     "id": "show_cart_note",
+     "label": "Show cart note",
+     "default": true
+   },
+   {
+     "type": "checkbox",
+     "id": "show_shipping_text",
+     "label": "Show shipping text",
+     "default": true
+   },
+   {
+     "type": "checkbox",
+     "id": "show_view_cart_button",
+     "label": "Show view cart button",
+     "default": true
+   },
+   {
+     "type": "checkbox",
+     "id": "show_checkout_button",
+     "label": "Show checkout button",
+     "default": true
+   },
+   {
+     "type": "header",
+     "content": "Product recommendations"
+   },
+   {
+     "type": "text",
+     "id": "recommendations_title",
+     "label": "Heading",
+     "default": "Trending this month"
+   },
+   {
+     "type": "product_list",
+     "id": "products",
+     "label": "Recommendations",
+     "info": "Suggest additional products to your customers.",
+     "limit": 10
+   },
+   {
+     "type": "color",
+     "id": "product_card_background",
+     "label": "Product card background"
+   },
+   {
+     "type": "color",
+     "id": "product_card_text_color",
+     "label": "Product card text"
+   }
+ ]
+}
+{% endschema %}
